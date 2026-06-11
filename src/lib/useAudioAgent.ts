@@ -146,16 +146,17 @@ export function useAudioAgent() {
             return;
           }
           
+          console.log(`Received valid audio packet, length: ${arrayBuffer.byteLength} bytes`);
+          
           try {
-            // Bolna streams raw PCM 16-bit at 16kHz. Decode manually.
+            // Decode raw 16-bit PCM manually as it lacks a WAV header
             const int16Array = new Int16Array(arrayBuffer);
             const float32Array = new Float32Array(int16Array.length);
             for (let i = 0; i < int16Array.length; i++) {
-              float32Array[i] = int16Array[i] / (int16Array[i] >= 0 ? 32767 : 32768);
+              float32Array[i] = int16Array[i] / (int16Array[i] < 0 ? 32768 : 32767);
             }
-
             const audioBuffer = audioCtx.createBuffer(1, float32Array.length, 16000);
-            audioBuffer.copyToChannel(float32Array, 0);
+            audioBuffer.getChannelData(0).set(float32Array);
 
             const source = audioCtx.createBufferSource();
             source.buffer = audioBuffer;
