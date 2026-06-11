@@ -12,6 +12,9 @@ export function useAudioAgent() {
   // Track playback state for queued audio chunks
   const nextPlayTimeRef = useRef<number>(0);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+  
+  // Web-call handshake: server must send 'ack' before we stream audio
+  const ackReceivedRef = useRef<boolean>(false);
 
   // Helpers
   const base64ToArrayBuffer = (base64: string) => {
@@ -49,6 +52,12 @@ export function useAudioAgent() {
     try {
       const agentId = process.env.NEXT_PUBLIC_AGENT_ID;
       if (!agentId) throw new Error("Missing NEXT_PUBLIC_AGENT_ID");
+      
+      const apiKey = process.env.NEXT_PUBLIC_BOLNA_API_KEY;
+      if (!apiKey) throw new Error("Missing NEXT_PUBLIC_BOLNA_API_KEY");
+      
+      ackReceivedRef.current = false;
+      let audioDebugCount = 0;
 
       // Initialize AudioContext forcing 16kHz
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -66,19 +75,26 @@ export function useAudioAgent() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Setup WebSocket
-      const wsUrl = `wss://api.bolna.ai/chat/v1/${agentId}`;
+      // Setup WebSocket — use /web-call/v1/ endpoint with query-param auth (browser-compatible)
+      const wsUrl = `wss://api.bolna.ai/web-call/v1/${agentId}?auth_token=${apiKey}&user_agent=web-call&enforce_streaming=true`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
         console.log("Connected to Bolna WebSocket");
-        setIsConnected(true);
         
-        // Start processing mic data
+        // Step 1: Send init packet — server will respond with 'ack' before we can stream audio
+        ws.send(JSON.stringify({
+          type: "init",
+          meta_data: { context_data: {} }
+        }));
+        console.log("Sent init packet, waiting for ack...");
+      };
+      
+      // Helper to start mic processing — called after 'ack' is received
+      const startMicCapture = () => {
         const source = audioCtx.createMediaStreamSource(stream);
         sourceRef.current = source;
-        // ScriptProcessor is technically deprecated but perfect for hackathon audio downsampling
         const processor = audioCtx.createScriptProcessor(4096, 1, 1);
         processorRef.current = processor;
 
@@ -86,7 +102,7 @@ export function useAudioAgent() {
         processor.connect(audioCtx.destination);
 
         processor.onaudioprocess = (e) => {
-          if (ws.readyState === WebSocket.OPEN) {
+          if (ws.readyState === WebSocket.OPEN && ackReceivedRef.current) {
             const inputData = e.inputBuffer.getChannelData(0);
             const pcmBuffer = floatTo16BitPCM(inputData);
             const base64Data = arrayBufferToBase64(pcmBuffer);
@@ -98,19 +114,40 @@ export function useAudioAgent() {
       ws.onmessage = async (event) => {
         const msg = JSON.parse(event.data);
         
-        if (msg.type === "clear") {
+        // Handle ack — server is ready, start mic capture
+        if (msg.type === "ack") {
+          console.log("Ack received — starting mic capture");
+          ackReceivedRef.current = true;
+          setIsConnected(true);
+          startMicCapture();
+        }
+        // Handle interruption
+        else if (msg.type === "clear") {
           console.log("Interrupt received! Clearing audio.");
           activeSourcesRef.current.forEach(source => {
             try { source.stop(); } catch(e) {}
           });
           activeSourcesRef.current = [];
-          // Reset playhead to current time so next audio starts immediately
           nextPlayTimeRef.current = audioCtx.currentTime;
-        } 
+        }
+        // Handle mark — echo back to server for playback tracking
+        else if (msg.type === "mark") {
+          console.log("Echoing mark event back to server");
+          ws.send(JSON.stringify(msg));
+        }
+        // Handle audio playback
         else if (msg.type === "audio" && msg.data) {
           const arrayBuffer = base64ToArrayBuffer(msg.data);
+          
+          // Bolna sends a 1-byte null packet (\x00) as an end-of-stream marker.
+          // Raw PCM 16-bit requires an even number of bytes. Skip odd-length buffers.
+          if (arrayBuffer.byteLength % 2 !== 0) {
+            console.log("Skipping non-PCM packet (likely stream marker), length:", arrayBuffer.byteLength);
+            return;
+          }
+          
           try {
-            // Convert Int16 buffer back to Float32 for Web Audio API playback
+            // Bolna streams raw PCM 16-bit at 16kHz. Decode manually.
             const int16Array = new Int16Array(arrayBuffer);
             const float32Array = new Float32Array(int16Array.length);
             for (let i = 0; i < int16Array.length; i++) {
@@ -124,12 +161,10 @@ export function useAudioAgent() {
             source.buffer = audioBuffer;
             source.connect(audioCtx.destination);
             
-            // Queue playback gaplessly
             const scheduleTime = Math.max(audioCtx.currentTime, nextPlayTimeRef.current);
             source.start(scheduleTime);
             nextPlayTimeRef.current = scheduleTime + audioBuffer.duration;
             
-            // Keep track of active sources so we can stop them if interrupted
             activeSourcesRef.current.push(source);
             source.onended = () => {
               activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== source);
