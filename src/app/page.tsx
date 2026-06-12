@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export default function LandingPage() {
@@ -42,10 +41,10 @@ export default function LandingPage() {
           </p>
 
           <div className="hero-actions animate-slide-up stagger-4">
-            <Link href="/triage" className="cta-button">
+            <a href="/triage" className="cta-button">
               <span>Launch Voice Agent</span>
               <ArrowRight size={16} className="cta-icon" />
-            </Link>
+            </a>
           </div>
         </div>
       </main>
