@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useAudioAgent } from "@/lib/useAudioAgent";
 import TopBar from "@/components/TopBar";
+import VoiceOrb from "@/components/VoiceOrb";
 import { Mic, Square } from "lucide-react";
+import type { VoiceState } from "@/lib/types";
 
 export default function Home() {
   const { isConnected, connect, disconnect } = useAudioAgent();
@@ -25,6 +27,14 @@ export default function Home() {
     setSessionStartTime(null);
     disconnect();
   }, [disconnect]);
+
+  // Derive voice state for the orb
+  // For now: offline when disconnected, listening when connected
+  // Phase 4 will add isSpeaking from the hook to switch to 'speaking'
+  const voiceState: VoiceState = useMemo(() => {
+    if (!isConnected) return "offline";
+    return "listening";
+  }, [isConnected]);
 
   return (
     <div className="console-root">
@@ -71,15 +81,8 @@ export default function Home() {
           style={{ gridArea: "voice" }}
         >
           <div className="voice-column-inner">
-            {/* Orb placeholder */}
-            <div className="orb-placeholder">
-              <div
-                className={`orb-circle ${isConnected ? "active" : ""}`}
-              />
-              <span className="orb-label">
-                {isConnected ? "Listening..." : "Offline"}
-              </span>
-            </div>
+            {/* Voice Orb — the signature element */}
+            <VoiceOrb state={voiceState} />
 
             {/* Start/End button */}
             <button
@@ -235,44 +238,7 @@ export default function Home() {
           gap: var(--space-4);
         }
 
-        /* ── Orb Placeholder ── */
-        .orb-placeholder {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: var(--space-3);
-          padding-top: var(--space-5);
-        }
-
-        .orb-circle {
-          width: 120px;
-          height: 120px;
-          border-radius: 50%;
-          background: var(--surface-elevated);
-          border: 2px solid var(--border-subtle);
-          transition: all 0.5s ease;
-        }
-
-        .orb-circle.active {
-          border-color: var(--signal-vitals);
-          box-shadow: 0 0 30px var(--signal-vitals-dim),
-            0 0 60px var(--signal-vitals-glow);
-          animation: orb-breathe 4s ease-in-out infinite;
-        }
-
-        .orb-label {
-          font-family: var(--font-data);
-          font-size: 0.7rem;
-          font-weight: 500;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--text-muted);
-          transition: color 0.3s ease;
-        }
-
-        .orb-circle.active + .orb-label {
-          color: var(--signal-vitals);
-        }
+        /* Orb styles are self-contained in VoiceOrb.tsx */
 
         /* ── Triage Button ── */
         .triage-btn {
