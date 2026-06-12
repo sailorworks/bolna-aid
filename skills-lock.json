@@ -49,6 +49,12 @@
       "skillPath": "debug-bolna-calls/SKILL.md",
       "computedHash": "d89524024aeb151646d66180f21fa5dfd33ec1bcfea7cd3c2c2ae3b7a685c5e9"
     },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336"
+    },
     "get-executions": {
       "source": "bolna-ai/skills",
       "sourceType": "github",

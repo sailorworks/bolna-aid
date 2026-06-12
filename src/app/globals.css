@@ -1,26 +1,414 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────
+   BOLNA-AID — Design Token System
+   Aesthetic: Clinical Command / Surgical Precision
+   ───────────────────────────────────────────── */
+
+/* Fonts are loaded via next/font/google in layout.tsx (self-hosted, zero FOUT) */
+
+/* ── Color Tokens ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --surface-void:       #0B0E11;
+  --surface-primary:    #111519;
+  --surface-elevated:   #1A1F26;
+  --surface-hover:      #232A33;
+
+  /* Borders */
+  --border-subtle:      #2A3140;
+  --border-active:      #3D4A5C;
+
+  /* Text */
+  --text-primary:       #E8ECF1;
+  --text-secondary:     #8B95A5;
+  --text-muted:         #505B6B;
+
+  /* Signals — clinical color language */
+  --signal-vitals:      #00D4AA;
+  --signal-vitals-dim:  rgba(0, 212, 170, 0.2);
+  --signal-vitals-glow: rgba(0, 212, 170, 0.12);
+  --signal-warning:     #FF9F43;
+  --signal-warning-dim: rgba(255, 159, 67, 0.15);
+  --signal-critical:    #FF4757;
+  --signal-critical-dim:rgba(255, 71, 87, 0.13);
+  --signal-info:        #4DABF7;
+  --signal-info-dim:    rgba(77, 171, 247, 0.13);
+  --signal-clear:       #51CF66;
+  --signal-clear-dim:   rgba(81, 207, 102, 0.15);
+
+  /* Voice orb */
+  --voice-orb-idle:     rgba(0, 212, 170, 0.08);
+  --voice-orb-listen:   #00D4AA;
+  --voice-orb-speak:    #4DABF7;
+
+  /* Typography — references the CSS vars injected by next/font/google */
+  --font-display:       var(--font-dm-sans), system-ui, sans-serif;
+  --font-body:          var(--font-dm-sans), system-ui, sans-serif;
+  --font-data:          var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-orb: 50%;
+
+  /* Layout */
+  --panel-gap: 12px;
+  --topbar-height: 56px;
 }
 
+/* ── Tailwind v4 theme bridge ── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--surface-void);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-data);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  background: var(--surface-void);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow: hidden; /* full-viewport console — no body scroll */
+}
+
+/* ── Noise Texture Overlay ──
+   Subtle grain on all panels for physical depth.
+   Uses an inline SVG data-URI (no external file). */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.035;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+}
+
+/* ── Panel Base ── */
+.panel {
+  position: relative;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  overflow: hidden;
+}
+
+.panel-elevated {
+  background: var(--surface-elevated);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.panel-header {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panel-empty-text {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: var(--space-7) var(--space-4);
+}
+
+/* ── Data Typography ── */
+.font-data {
+  font-family: var(--font-data);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.text-signal-vitals { color: var(--signal-vitals); }
+.text-signal-warning { color: var(--signal-warning); }
+.text-signal-critical { color: var(--signal-critical); }
+.text-signal-info { color: var(--signal-info); }
+.text-signal-clear { color: var(--signal-clear); }
+
+/* ── Scrollbar (clinical dark) ── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-active);
+}
+
+/* ─────────────────────────────────────────────
+   KEYFRAME ANIMATIONS
+   ───────────────────────────────────────────── */
+
+/* Voice Orb — idle breathe */
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
+}
+
+/* Voice Orb — sonar ring expansion (listening) */
+@keyframes sonar-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Voice Orb — equalizer bars (speaking) */
+@keyframes eq-bar-1 {
+  0%, 100% { height: 20%; }
+  50%      { height: 80%; }
+}
+@keyframes eq-bar-2 {
+  0%, 100% { height: 40%; }
+  50%      { height: 60%; }
+}
+@keyframes eq-bar-3 {
+  0%, 100% { height: 60%; }
+  50%      { height: 100%; }
+}
+@keyframes eq-bar-4 {
+  0%, 100% { height: 30%; }
+  50%      { height: 70%; }
+}
+@keyframes eq-bar-5 {
+  0%, 100% { height: 50%; }
+  50%      { height: 90%; }
+}
+
+/* TopBar — bottom border shimmer */
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+/* Panel entries — slide up from bottom */
+@keyframes slide-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Panel entries — slide in from left (patient data rows) */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Panel entries — slide in from right (protocol change) */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Log entry — highlight flash */
+@keyframes highlight-flash {
+  0%   { background-color: var(--surface-hover); }
+  100% { background-color: transparent; }
+}
+
+/* Scale-in (drug safety result) */
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Timer colon blink */
+@keyframes timer-tick {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0.3; }
+}
+
+/* Page load — stagger panels in */
+@keyframes panel-enter {
+  from {
+    transform: scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Handoff sections cascade */
+@keyframes cascade-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Pulsing border for empty states */
+@keyframes pulse-border {
+  0%, 100% { border-color: var(--border-subtle); }
+  50%      { border-color: var(--border-active); }
+}
+
+/* Orb glow pulse (listening) */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--signal-vitals-glow), 0 0 40px transparent; }
+  50%      { box-shadow: 0 0 30px var(--signal-vitals-dim), 0 0 60px var(--signal-vitals-glow); }
+}
+
+/* ── Animation Utility Classes ── */
+.animate-breathe {
+  animation: orb-breathe 4s ease-in-out infinite;
+}
+
+.animate-sonar {
+  animation: sonar-ring 2s ease-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer-sweep 8s linear infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-left {
+  animation: slide-in-left 200ms ease-out forwards;
+}
+
+.animate-slide-right {
+  animation: slide-in-right 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 250ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-highlight {
+  animation: highlight-flash 1s ease-out forwards;
+}
+
+.animate-panel-enter {
+  animation: panel-enter 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.animate-cascade {
+  animation: cascade-in 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-timer-tick {
+  animation: timer-tick 1s steps(1) infinite;
+}
+
+/* ── Stagger Delays (for row/panel entrance) ── */
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 50ms; }
+.stagger-3 { animation-delay: 100ms; }
+.stagger-4 { animation-delay: 150ms; }
+.stagger-5 { animation-delay: 200ms; }
+.stagger-6 { animation-delay: 250ms; }
+.stagger-7 { animation-delay: 300ms; }
+.stagger-8 { animation-delay: 350ms; }
+.stagger-9 { animation-delay: 400ms; }
+.stagger-10 { animation-delay: 450ms; }
+
+/* Panel entrance stagger (longer delays) */
+.panel-stagger-1 { animation-delay: 0ms; }
+.panel-stagger-2 { animation-delay: 60ms; }
+.panel-stagger-3 { animation-delay: 120ms; }
+.panel-stagger-4 { animation-delay: 180ms; }
+.panel-stagger-5 { animation-delay: 240ms; }
+.panel-stagger-6 { animation-delay: 300ms; }
+.panel-stagger-7 { animation-delay: 360ms; }
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
