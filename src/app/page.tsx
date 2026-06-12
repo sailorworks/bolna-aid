@@ -4,8 +4,12 @@ import { useState, useCallback, useMemo } from "react";
 import { useAudioAgent } from "@/lib/useAudioAgent";
 import TopBar from "@/components/TopBar";
 import VoiceOrb from "@/components/VoiceOrb";
+import PatientCard from "@/components/PatientCard";
+import VitalsSnapshot from "@/components/VitalsSnapshot";
+import HandoffSummary from "@/components/HandoffSummary";
 import { Mic, Square } from "lucide-react";
 import type { VoiceState } from "@/lib/types";
+import { DEMO_PATIENTS, type DemoPatient } from "@/lib/patient-data";
 
 export default function Home() {
   const { isConnected, connect, disconnect } = useAudioAgent();
@@ -13,10 +17,16 @@ export default function Home() {
   // Session state
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
 
-  // Demo patient state (will be populated by voice commands in later phases)
-  const [patientName] = useState<string | null>(null);
-  const [patientAge] = useState<number | null>(null);
-  const [patientSex] = useState<string | null>(null);
+  // Demo patient state
+  const [activePatient, setActivePatient] = useState<DemoPatient | null>(null);
+
+  // Handoff state
+  const [handoffGenerated, setHandoffGenerated] = useState(false);
+
+  const handleSelectPatient = useCallback((data: DemoPatient | null) => {
+    setActivePatient(data);
+    setHandoffGenerated(false); // reset handoff when patient changes
+  }, []);
 
   const handleConnect = useCallback(async () => {
     setSessionStartTime(new Date());
@@ -40,9 +50,9 @@ export default function Home() {
     <div className="console-root">
       {/* Top Bar */}
       <TopBar
-        patientName={patientName}
-        patientAge={patientAge}
-        patientSex={patientSex}
+        patientName={activePatient?.patient.name ?? null}
+        patientAge={activePatient?.patient.age ?? null}
+        patientSex={activePatient?.patient.sex ?? null}
         isConnected={isConnected}
         sessionStartTime={sessionStartTime}
       />
@@ -51,21 +61,19 @@ export default function Home() {
       <main className="console-grid">
         {/* Row 1, Col 1 — Patient Card */}
         <section
-          className="panel noise-overlay animate-panel-enter panel-stagger-1"
+          className={`panel noise-overlay animate-panel-enter panel-stagger-1 ${handoffGenerated ? "dimmed" : ""}`}
           style={{ gridArea: "patient" }}
         >
           <div className="panel-header">
             <span className="panel-header-icon">👤</span>
             Patient Profile
           </div>
-          <div className="panel-empty-text">
-            Say a patient name to load profile
-          </div>
+          <PatientCard patient={activePatient?.patient ?? null} />
         </section>
 
         {/* Row 1, Col 2 — Protocol Viewer */}
         <section
-          className="panel noise-overlay animate-panel-enter panel-stagger-2"
+          className={`panel noise-overlay animate-panel-enter panel-stagger-2 ${handoffGenerated ? "dimmed" : ""}`}
           style={{ gridArea: "protocol" }}
         >
           <div className="panel-header">
@@ -97,65 +105,59 @@ export default function Home() {
               {isConnected ? "End Session" : "Start Triage"}
             </button>
 
-            {/* Transcript placeholder */}
-            <div className="transcript-placeholder">
-              <div className="panel-header">
-                <span className="panel-header-icon">💬</span>
-                Live Transcript
+            {/* Demo Patient Selector */}
+            <div className="demo-selector">
+              <span className="demo-selector-label">Load Demo Patient</span>
+              <div className="demo-selector-btns">
+                {Object.entries(DEMO_PATIENTS).map(([key, data]) => (
+                  <button
+                    key={key}
+                    className={`demo-btn ${activePatient?.patient.id === data.patient.id ? "active" : ""}`}
+                    onClick={() => handleSelectPatient(data)}
+                  >
+                    {data.patient.name.split(" ")[0]}
+                  </button>
+                ))}
+                {activePatient && (
+                  <button
+                    className="demo-btn clear"
+                    onClick={() => handleSelectPatient(null)}
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
-              {isConnected ? (
-                <p className="transcript-waiting">
-                  Waiting for conversation...
-                </p>
-              ) : (
-                <p className="panel-empty-text" style={{ padding: "var(--space-4)" }}>
-                  Start a session to see transcript
-                </p>
-              )}
             </div>
+
+            {/* Generate Handoff Button */}
+            {activePatient && !handoffGenerated && (
+              <button
+                className="handoff-btn"
+                onClick={() => setHandoffGenerated(true)}
+              >
+                📄 Generate Handoff
+              </button>
+            )}
           </div>
         </section>
 
-        {/* Row 2, Col 1 — Vitals + ESI */}
         <section
-          className="panel noise-overlay animate-panel-enter panel-stagger-4"
+          className={`panel noise-overlay animate-panel-enter panel-stagger-4 ${handoffGenerated ? "dimmed" : ""}`}
           style={{ gridArea: "vitals" }}
         >
           <div className="panel-header">
             <span className="panel-header-icon">🫀</span>
             Vitals & ESI Level
           </div>
-          <div className="vitals-placeholder-grid">
-            <div className="vital-slot">
-              <span className="vital-label">ESI</span>
-              <span className="vital-value">--</span>
-            </div>
-            <div className="vital-slot">
-              <span className="vital-label">HR</span>
-              <span className="vital-value">--</span>
-            </div>
-            <div className="vital-slot">
-              <span className="vital-label">BP</span>
-              <span className="vital-value">--</span>
-            </div>
-            <div className="vital-slot">
-              <span className="vital-label">RR</span>
-              <span className="vital-value">--</span>
-            </div>
-            <div className="vital-slot">
-              <span className="vital-label">SpO2</span>
-              <span className="vital-value">--</span>
-            </div>
-            <div className="vital-slot">
-              <span className="vital-label">GCS</span>
-              <span className="vital-value">--</span>
-            </div>
-          </div>
+          <VitalsSnapshot
+            vitals={activePatient?.vitals ?? null}
+            esi={activePatient?.esi ?? null}
+          />
         </section>
 
         {/* Row 2, Col 2 — Drug Safety */}
         <section
-          className="panel noise-overlay animate-panel-enter panel-stagger-5"
+          className={`panel noise-overlay animate-panel-enter panel-stagger-5 ${handoffGenerated ? "dimmed" : ""}`}
           style={{ gridArea: "drug" }}
         >
           <div className="panel-header">
@@ -169,7 +171,7 @@ export default function Home() {
 
         {/* Row 3, Col 1-2 — Triage Event Log */}
         <section
-          className="panel noise-overlay animate-panel-enter panel-stagger-6"
+          className={`panel noise-overlay animate-panel-enter panel-stagger-6 ${handoffGenerated ? "dimmed" : ""}`}
           style={{ gridArea: "log" }}
         >
           <div className="panel-header">
@@ -191,9 +193,12 @@ export default function Home() {
             <span className="panel-header-icon">📄</span>
             Handoff Summary
           </div>
-          <div className="panel-empty-text">
-            Say &quot;prepare handoff&quot; to generate
-          </div>
+          <HandoffSummary
+            patient={activePatient?.patient ?? null}
+            vitals={activePatient?.vitals ?? null}
+            esi={activePatient?.esi ?? null}
+            isGenerated={handoffGenerated}
+          />
         </section>
       </main>
 
@@ -278,58 +283,67 @@ export default function Home() {
           transform: translateY(-1px);
         }
 
-        /* ── Transcript Placeholder ── */
-        .transcript-placeholder {
+
+
+        /* ── Demo Selector ── */
+        .demo-selector {
           width: 100%;
-          flex: 1;
-          min-height: 0;
-          padding: var(--space-3);
-          border-top: 1px solid var(--border-subtle);
-          overflow: hidden;
-        }
-
-        .transcript-waiting {
-          font-family: var(--font-data);
-          font-size: 0.7rem;
-          color: var(--text-muted);
-          text-align: center;
-          padding: var(--space-4);
-          animation: orb-breathe 3s ease-in-out infinite;
-        }
-
-        /* ── Vitals Placeholder Grid ── */
-        .vitals-placeholder-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: var(--space-2);
-          padding: var(--space-2) 0;
-        }
-
-        .vital-slot {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 2px;
-          padding: var(--space-2) var(--space-1);
-          background: var(--surface-elevated);
-          border-radius: var(--radius-sm);
-          border: 1px solid var(--border-subtle);
+          gap: var(--space-2);
+          padding-top: var(--space-3);
+          border-top: 1px solid var(--border-subtle);
         }
 
-        .vital-label {
+        .demo-selector-label {
           font-family: var(--font-data);
-          font-size: 0.6rem;
+          font-size: 0.55rem;
           font-weight: 500;
           color: var(--text-muted);
+          letter-spacing: 0.1em;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
         }
 
-        .vital-value {
-          font-family: var(--font-data);
-          font-size: 1.1rem;
+        .demo-selector-btns {
+          display: flex;
+          gap: var(--space-2);
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .demo-btn {
+          font-family: var(--font-display);
+          font-size: 0.7rem;
           font-weight: 500;
+          padding: 5px 12px;
+          border-radius: 100px;
+          border: 1px solid var(--border-subtle);
+          background: var(--surface-elevated);
           color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .demo-btn:hover {
+          border-color: var(--border-active);
+          color: var(--text-primary);
+          background: var(--surface-hover);
+        }
+
+        .demo-btn.active {
+          border-color: var(--signal-vitals);
+          color: var(--signal-vitals);
+          background: var(--signal-vitals-glow);
+        }
+
+        .demo-btn.clear {
+          border-color: var(--signal-critical-dim);
+          color: var(--signal-critical);
+        }
+
+        .demo-btn.clear:hover {
+          background: var(--signal-critical-dim);
         }
 
         /* ── Log Count Badge ── */
@@ -349,6 +363,37 @@ export default function Home() {
         .panel-header-icon {
           font-size: 0.85rem;
           line-height: 1;
+        }
+
+        /* ── Handoff Button ── */
+        .handoff-btn {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          padding: 8px 18px;
+          border: 1px solid var(--signal-info);
+          border-radius: 100px;
+          background: var(--signal-info-dim);
+          color: var(--signal-info);
+          font-family: var(--font-display);
+          font-size: 0.7rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          letter-spacing: 0.02em;
+        }
+
+        .handoff-btn:hover {
+          background: rgba(77, 171, 247, 0.2);
+          box-shadow: 0 0 20px var(--signal-info-dim);
+          transform: translateY(-1px);
+        }
+
+        /* ── Panel Dimming (when handoff is shown) ── */
+        .dimmed {
+          opacity: 0.5;
+          transition: opacity 0.5s ease;
+          pointer-events: none;
         }
       `}</style>
     </div>
