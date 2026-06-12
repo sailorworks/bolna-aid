@@ -20,12 +20,24 @@
             "stream": true
           },
           "llm_agent": {
-            "agent_type": "simple_llm_agent",
+            "agent_type": "knowledgebase_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
               "provider": "openai",
               "model": "gpt-4.1-mini",
               "request_json": false
+            },
+            "vector_store": {
+              "provider": "lancedb",
+              "provider_config": {
+                "vector_ids": [
+                  "bb7962cd-11be-4e9b-bf0d-8014b828331f",
+                  "58ba2314-2815-4e6c-b526-fcb498b58d28",
+                  "78fbe560-0868-418d-bfee-3ee9094945ac",
+                  "42356aa0-eaaa-48b6-88ce-859a0082bc19"
+                ],
+                "similarity_top_k": 8
+              }
             }
           },
           "synthesizer": {
