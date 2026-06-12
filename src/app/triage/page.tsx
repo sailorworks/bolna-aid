@@ -251,7 +251,7 @@ export default function Home() {
           align-items: center;
           gap: var(--space-2);
           padding: 10px 24px;
-          border: none;
+          border: 1px solid transparent;
           border-radius: 100px;
           font-family: var(--font-display);
           font-weight: 600;
@@ -262,25 +262,28 @@ export default function Home() {
         }
 
         .triage-btn.start {
-          background: var(--signal-vitals);
-          color: var(--surface-void);
-          box-shadow: 0 0 20px var(--signal-vitals-glow);
+          background: #000000;
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .triage-btn.start:hover {
-          box-shadow: 0 0 30px var(--signal-vitals-dim);
+          background: #222222;
           transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
 
         .triage-btn.end {
-          background: var(--signal-critical);
-          color: white;
-          box-shadow: 0 0 20px var(--signal-critical-dim);
+          background: #ffffff;
+          color: #000000;
+          border-color: #000000;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         .triage-btn.end:hover {
-          box-shadow: 0 0 30px rgba(255, 71, 87, 0.3);
+          background: #f5f5f5;
           transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
 
@@ -338,12 +341,12 @@ export default function Home() {
         }
 
         .demo-btn.clear {
-          border-color: var(--signal-critical-dim);
-          color: var(--signal-critical);
+          border-color: var(--border-subtle);
+          color: #ff3b30;
         }
 
         .demo-btn.clear:hover {
-          background: var(--signal-critical-dim);
+          background: rgba(255, 59, 48, 0.05);
         }
 
         /* ── Log Count Badge ── */
@@ -371,10 +374,10 @@ export default function Home() {
           align-items: center;
           gap: var(--space-2);
           padding: 8px 18px;
-          border: 1px solid var(--signal-info);
+          border: 1px solid #000000;
           border-radius: 100px;
-          background: var(--signal-info-dim);
-          color: var(--signal-info);
+          background: transparent;
+          color: #000000;
           font-family: var(--font-display);
           font-size: 0.7rem;
           font-weight: 600;
@@ -384,8 +387,7 @@ export default function Home() {
         }
 
         .handoff-btn:hover {
-          background: rgba(77, 171, 247, 0.2);
-          box-shadow: 0 0 20px var(--signal-info-dim);
+          background: rgba(0, 0, 0, 0.05);
           transform: translateY(-1px);
         }
 

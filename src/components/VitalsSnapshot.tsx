@@ -9,21 +9,12 @@ interface VitalsSnapshotProps {
 
 /** Color for ESI level badge */
 function esiColor(level: number): string {
-  switch (level) {
-    case 1: return "var(--signal-critical)";
-    case 2: return "var(--signal-warning)";
-    case 3: return "var(--signal-info)";
-    default: return "var(--text-secondary)";
-  }
+  return "var(--text-primary)";
 }
 
 /** Color for ESI glow */
 function esiGlow(level: number): string {
-  switch (level) {
-    case 1: return "var(--signal-critical-dim)";
-    case 2: return "var(--signal-warning-dim)";
-    default: return "transparent";
-  }
+  return "transparent";
 }
 
 /** Determine if a vital value is abnormal */
@@ -191,13 +182,15 @@ export default function VitalsSnapshot({ vitals, esi }: VitalsSnapshotProps) {
         }
 
         .vs-cell.warning {
-          background: var(--signal-warning-dim);
-          border-color: var(--signal-warning);
+          background: var(--surface-elevated);
+          border-color: #000000;
+          border-width: 1.5px;
         }
 
         .vs-cell.critical {
-          background: var(--signal-critical-dim);
-          border-color: var(--signal-critical);
+          background: #000000;
+          border-color: #000000;
+          border-width: 1.5px;
         }
 
         .vs-cell-label {
@@ -207,6 +200,11 @@ export default function VitalsSnapshot({ vitals, esi }: VitalsSnapshotProps) {
           color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.08em;
+          transition: color 0.3s ease;
+        }
+
+        .vs-cell.critical .vs-cell-label {
+          color: #ffffff;
         }
 
         .vs-cell-value {
@@ -215,20 +213,26 @@ export default function VitalsSnapshot({ vitals, esi }: VitalsSnapshotProps) {
           font-weight: 500;
           color: var(--text-primary);
           line-height: 1;
+          transition: color 0.3s ease;
         }
 
         .vs-cell.warning .vs-cell-value {
-          color: var(--signal-warning);
+          color: #000000;
         }
 
         .vs-cell.critical .vs-cell-value {
-          color: var(--signal-critical);
+          color: #ffffff;
         }
 
         .vs-cell-unit {
           font-family: var(--font-data);
           font-size: 0.5rem;
           color: var(--text-muted);
+          transition: color 0.3s ease;
+        }
+
+        .vs-cell.critical .vs-cell-unit {
+          color: rgba(255, 255, 255, 0.7);
         }
       `}</style>
     </div>
